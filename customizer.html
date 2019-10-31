@@ -9,40 +9,129 @@
 		</style>
 	</head>
 	<body>
-		<script src="node_modules/three/build/three.js"></script>
 		<script type="module">
 
-            import { OrbitControls } from '../node_modules/three/examples/jsm/controls/OrbitControls.js';
+            import * as THREE from '../node_modules/three/build/three.module.js';
+			import { OrbitControls } from '../node_modules/three/examples/jsm/controls/OrbitControls.js';
+			import { TransformControls } from '../node_modules/three/examples/jsm/controls/TransformControls.js';
+            import { DragControls } from '../node_modules/three/examples/jsm/controls/DragControls.js';
+            
+            
+            var camera, scene, renderer, dragControls, orbitControls,transformControl;
+            
+			init();
+            /*animate();*/
+            render();
+            
 
-			var scene = new THREE.Scene();
-            var camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 10000 );
+            function init() {
 
-            var renderer = new THREE.WebGLRenderer();
-            renderer.setSize( window.innerWidth, window.innerHeight );
-            document.body.appendChild( renderer.domElement );
+                scene = new THREE.Scene();
+                camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 10000 );
 
-            var geometry = new THREE.BoxGeometry( 1, 1, 1 );
-            var material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
-            var cube = new THREE.Mesh( geometry, material );
-            scene.add( cube );
-
-            /*camera.position.z = 5;*/
-
-            var controls = new OrbitControls( camera, renderer.domElement );
-            controls.maxDistance = 6;
-            controls.minDistance = 4;            
-            camera.position.z = 5;
-            controls.update();
+                renderer = new THREE.WebGLRenderer();
+                renderer.setSize( window.innerWidth, window.innerHeight );
+                document.body.appendChild( renderer.domElement );
 
 
-            function animate() {
-                requestAnimationFrame( animate );
-                controls.update();
-                renderer.render( scene, camera );
-                /*cube.rotation.x += 0.01;
-                cube.rotation.y += 0.01;*/
+                /*orbitcontrol setup*/
+                orbitControls = new OrbitControls( camera, renderer.domElement );
+                orbitControls.maxDistance = 20;
+                orbitControls.minDistance = 0;            
+                camera.position.z = 5;
+                orbitControls.update();
+				orbitControls.addEventListener( 'change', render );
+
+                var curve = new THREE.EllipseCurve(
+                    0,  0,            // ax, aY
+                    2, 3,           // xRadius, yRadius
+                    0,  2 * Math.PI,  // aStartAngle, aEndAngle
+                    false,            // aClockwise
+                    0                 // aRotation
+                );
+
+                var points = curve.getPoints( 50 );               
+                var geometry = new THREE.BufferGeometry().setFromPoints( points );
+
+                var material = new THREE.LineBasicMaterial( { color : 0x00ff00 } );
+
+                var ellipse = new THREE.Line( geometry, material );
+                // curve.rotation.x = Math.PI / 2;
+                scene.add( ellipse );
+                
+                /*create control points*/
+                var controlPoints = curve.getPoints( 4 );
+                controlPoints.forEach(createCube);
+
+                function createCube(item, index){
+                    
+                    /*control object*/
+                    var geometry = new THREE.BoxGeometry( 0.1, 0.1, 0.1 );
+                    var material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
+                    var cube = new THREE.Mesh( geometry, material );
+                    cube.position.set( item.x,item.y,0);
+                    scene.add( cube );
+
+                    /* TransformControl*/
+                    transformControl = new TransformControls( camera, renderer.domElement );
+                    transformControl.addEventListener( 'change', render );
+                    transformControl.addEventListener( 'dragging-changed', function ( event ) {
+                        orbitControls.enabled = ! event.value;
+                    } );
+                    transformControl.attach( cube );
+                    transformControl.showX = false;
+                    transformControl.showZ = false;
+                    scene.add( transformControl );
+                }
+ 
+               
+
+
+                /*Drag Control
+                dragControls = new DragControls( [cube] , camera, renderer.domElement );
+
+                dragControls.addEventListener( 'dragstart', function ( event ) {
+
+                    event.object.material.color.set(0xffffff);
+                    orbitControls.enabled = false;
+
+                } );
+
+                dragControls.addEventListener( 'dragend', function ( event ) {
+
+                    event.object.material.color.set(0x00ff00);
+                    orbitControls.enabled = true;
+
+                } );
+
+                dragControls.addEventListener( 'change', render );*/
+                
+                
+
+                /*resize*/
+                window.addEventListener( 'resize', onWindowResize, false );
             }
-            animate();
+
+
+         
+
+            function onWindowResize() {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				render();
+            }
+            
+			/*function animate() {
+				requestAnimationFrame( animate );
+				render();
+				
+            }*/
+            
+			function render() {
+				renderer.render( scene, camera );
+			}
+
 
 		</script>
 	</body>
